@@ -1726,17 +1726,32 @@ if __name__ == "__main__":
 
 
 
+from fastapi import Request
+
 @app.post("/api/chat")
-async def chat_with_domi(data: UserMessage):
-    texte_recu = data.message
+async def chat_with_domi(request: Request):
+    try:
+        # On extrait proprement le dictionnaire JSON envoyé par Lovable
+        data = await request.json()
+    except Exception:
+        return {"reply": "Format de requête invalide.", "emotion": "NEUTRAL"}
+
+    # Cette ligne cherche le texte peu importe le nom de la variable envoyée par Lovable
+    texte_recu = data.get("message") or data.get("text") or data.get("content") or ""
     
-    # Appel de votre fonction principale pour traiter le texte
-    reponse_de_mon_ia = analyser_et_executer(texte_recu)
-    
-    # L'émotion de base envoyée à la sphère Lovable
-    emotion_de_mon_ia = "NEUTRAL" 
-    
-    return {
-        "reply": str(reponse_de_mon_ia),
-        "emotion": str(emotion_de_mon_ia)
-    }
+    if not texte_recu:
+        return {"reply": "Domi n'a reçu aucun texte à analyser.", "emotion": "NEUTRAL"}
+        
+    try:
+        # Appel de votre moteur de réflexion de 1800 lignes
+        reponse_de_mon_ia = analyser_et_executer(texte_recu)
+        
+        return {
+            "reply": str(reponse_de_mon_ia),
+            "emotion": "NEUTRAL"
+        }
+    except Exception as e:
+        return {
+            "reply": "Connexion établie, mais erreur dans le moteur de réflexion.",
+            "emotion": "NEUTRAL"
+        }
