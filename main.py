@@ -1726,34 +1726,46 @@ if __name__ == "__main__":
 
 
 
+import io
+import sys
 from fastapi import Request
 
 @app.post("/api/chat")
 async def chat_with_domi(request: Request):
     try:
-        # On extrait proprement le dictionnaire JSON envoyé par Lovable
         data = await request.json()
     except Exception:
         return {"reply": "Format de requête invalide.", "emotion": "NEUTRAL"}
 
-    # Cette ligne cherche le texte peu importe le nom de la variable envoyée par Lovable
     texte_recu = data.get("message") or data.get("text") or data.get("content") or ""
-    
     if not texte_recu:
         return {"reply": "Domi n'a reçu aucun texte à analyser.", "emotion": "NEUTRAL"}
         
     try:
-        # Appel de votre moteur de réflexion de 1800 lignes
-        reponse_de_mon_ia = analyser_et_executer(texte_recu)
-        if reponse_de_mon_ia is None or str(reponse_de_mon_ia) == "None":
-            reponse_de_mon_ia = "Message reçu ! Ta fonction principale s'exécute bien mais elle se termine par un print() au lieu d'un return."
+        # --- CAPTURE AUTOMATIQUE DES PRINT ---
+        capture_de_la_console = io.StringIO()
+        sys.stdout = capture_de_la_console  # Redirige les print vers la mémoire
         
+        # Appel de votre fonction de 1800 lignes
+        reponse_de_mon_ia = analyser_et_executer(texte_recu)
+        
+        sys.stdout = sys._stdout_  # Remet le système de print à la normale
+        texte_capture = capture_de_la_console.getvalue().strip()
+        # -------------------------------------
+        
+        # On fusionne le retour et les print
+        reponse_finale = reponse_de_mon_ia or texte_capture
+        
+        if not reponse_finale or reponse_finale == "None":
+            reponse_finale = "J'ai exécuté le code, mais rien n'a été renvoyé ni imprimé (print)."
+
         return {
-            "reply": str(reponse_de_mon_ia),
+            "reply": str(reponse_finale),
             "emotion": "NEUTRAL"
         }
     except Exception as e:
+        sys.stdout = sys._stdout_  # Sécurité anti-blocage
         return {
-            "reply": "Connexion établie, mais erreur dans le moteur de réflexion.",
+            "reply": f"Connexion établie, mais erreur de capture : {str(e)}",
             "emotion": "NEUTRAL"
         }
