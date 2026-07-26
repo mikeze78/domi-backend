@@ -1745,6 +1745,8 @@ async def chat_with_domi(request: Request):
     try:
         # Appel de votre moteur de réflexion de 1800 lignes
         reponse_de_mon_ia = analyser_et_executer(texte_recu)
+        if reponse_de_mon_ia is None or str(reponse_de_mon_ia) == "None":
+            reponse_de_mon_ia = "Message reçu ! Ta fonction principale s'exécute bien mais elle se termine par un print() au lieu d'un return."
         
         return {
             "reply": str(reponse_de_mon_ia),
