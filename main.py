@@ -1726,8 +1726,9 @@ if __name__ == "__main__":
 
 
 
-import io
+mport io
 import sys
+import asyncio
 from fastapi import Request
 
 @app.post("/api/chat")
@@ -1742,30 +1743,30 @@ async def chat_with_domi(request: Request):
         return {"reply": "Domi n'a reçu aucun texte à analyser.", "emotion": "NEUTRAL"}
         
     try:
-        # --- CAPTURE AUTOMATIQUE DES PRINT ---
+        # --- CAPTURE DES PRINT SÉCURISÉE ---
         capture_de_la_console = io.StringIO()
-        sys.stdout = capture_de_la_console  # Redirige les print vers la mémoire
+        sys.stdout = capture_de_la_console
         
-        # Appel de votre fonction de 1800 lignes
-        reponse_de_mon_ia = analyser_et_executer(texte_recu)
+        # On exécute votre fonction lourde en arrière-plan pour éviter le Timeout de Lovable
+        loop = asyncio.get_event_loop()
+        reponse_de_mon_ia = await loop.run_in_executor(None, analyser_et_executer, texte_recu)
         
-        sys.stdout = sys._stdout_  # Remet le système de print à la normale
+        sys.stdout = sys._stdout_
         texte_capture = capture_de_la_console.getvalue().strip()
-        # -------------------------------------
+        # -----------------------------------
         
-        # On fusionne le retour et les print
         reponse_finale = reponse_de_mon_ia or texte_capture
         
         if not reponse_finale or reponse_finale == "None":
-            reponse_finale = "J'ai exécuté le code, mais rien n'a été renvoyé ni imprimé (print)."
+            reponse_finale = "J'ai bien réfléchi, mais aucune réponse n'a été générée."
 
         return {
             "reply": str(reponse_finale),
             "emotion": "NEUTRAL"
         }
     except Exception as e:
-        sys.stdout = sys._stdout_  # Sécurité anti-blocage
+        sys.stdout = sys._stdout_
         return {
-            "reply": f"Connexion établie, mais erreur de capture : {str(e)}",
+            "reply": f"Domi est en train de réfléchir, réessaye dans un instant. (Erreur : {str(e)})",
             "emotion": "NEUTRAL"
         }
